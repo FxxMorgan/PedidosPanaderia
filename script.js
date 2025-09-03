@@ -14,6 +14,13 @@ class OrderManager {
         this.setupEventListeners();
         this.renderOrders();
         this.updateSyncStatus();
+        
+        // Sincronizar automáticamente al cargar si está configurado
+        if (this.config.githubToken && this.config.gistId) {
+            setTimeout(() => {
+                this.loadFromGist();
+            }, 1000);
+        }
     }
 
     setupEventListeners() {
@@ -609,6 +616,8 @@ class OrderManager {
                 localStorage.setItem('bakery_config', JSON.stringify(this.config));
             }
 
+            // Guardar timestamp de sincronización
+            localStorage.setItem('bakery_lastSync', data.lastSync);
             this.showNotification('Datos sincronizados exitosamente', 'success');
         } catch (error) {
             console.error('Error al sincronizar:', error);
@@ -625,9 +634,14 @@ class OrderManager {
                 localStorage.setItem('bakery_config', JSON.stringify(this.config));
                 // Intentar crear uno nuevo
                 try {
+                    const data = {
+                        orders: this.orders,
+                        lastSync: new Date().toISOString()
+                    };
                     const gistId = await this.createGist(data);
                     this.config.gistId = gistId;
                     localStorage.setItem('bakery_config', JSON.stringify(this.config));
+                    localStorage.setItem('bakery_lastSync', data.lastSync);
                     this.showNotification('Nuevo Gist creado exitosamente', 'success');
                 } catch (createError) {
                     this.showNotification('Error al crear nuevo Gist', 'error');
@@ -737,33 +751,58 @@ class OrderManager {
             const content = gist.files['pedidos.json'].content;
             const data = JSON.parse(content);
 
-            // Combinar datos locales con remotos
+            // Obtener datos remotos
             const remoteOrders = data.orders || [];
+            const remoteLastSync = data.lastSync;
+            
+            // Obtener datos locales
             const localOrders = this.orders;
+            const localLastSync = localStorage.getItem('bakery_lastSync');
 
-            // Crear un mapa de pedidos por ID para evitar duplicados
+            // Si los datos remotos son más recientes, usarlos directamente
+            if (!localLastSync || (remoteLastSync && new Date(remoteLastSync) > new Date(localLastSync))) {
+                this.orders = remoteOrders;
+                localStorage.setItem('bakery_lastSync', remoteLastSync || new Date().toISOString());
+                this.saveToLocalStorage();
+                this.renderOrders();
+                this.showNotification('Datos actualizados desde la nube', 'success');
+                return;
+            }
+
+            // Si no hay diferencia de tiempo significativa, hacer merge inteligente
             const orderMap = new Map();
 
-            // Agregar pedidos locales
-            localOrders.forEach(order => {
-                orderMap.set(order.id, order);
+            // Primero agregar pedidos remotos
+            remoteOrders.forEach(remoteOrder => {
+                orderMap.set(remoteOrder.id, remoteOrder);
             });
 
-            // Agregar/actualizar con pedidos remotos (los remotos tienen prioridad si hay conflicto de timestamps)
-            remoteOrders.forEach(remoteOrder => {
-                const localOrder = orderMap.get(remoteOrder.id);
-                if (!localOrder || new Date(remoteOrder.updatedAt) > new Date(localOrder.updatedAt)) {
-                    orderMap.set(remoteOrder.id, remoteOrder);
+            // Luego agregar/actualizar con pedidos locales más recientes
+            localOrders.forEach(localOrder => {
+                const remoteOrder = orderMap.get(localOrder.id);
+                if (!remoteOrder || new Date(localOrder.updatedAt) > new Date(remoteOrder.updatedAt)) {
+                    orderMap.set(localOrder.id, localOrder);
                 }
             });
 
-            this.orders = Array.from(orderMap.values());
+            // Solo mantener pedidos que existen en remoto O son muy recientes localmente
+            const finalOrders = Array.from(orderMap.values()).filter(order => {
+                const isInRemote = remoteOrders.some(r => r.id === order.id);
+                const isRecentLocal = new Date(order.updatedAt) > new Date(Date.now() - 5 * 60 * 1000); // 5 minutos
+                return isInRemote || isRecentLocal;
+            });
+
+            this.orders = finalOrders;
+            localStorage.setItem('bakery_lastSync', new Date().toISOString());
             this.saveToLocalStorage();
             this.renderOrders();
             
-            this.showNotification('Datos sincronizados desde la nube', 'success');
+            if (finalOrders.length !== localOrders.length) {
+                this.showNotification('Datos sincronizados desde la nube', 'success');
+            }
         } catch (error) {
             console.error('Error al cargar desde gist:', error);
+            // No mostrar notificación de error en carga automática para no molestar al usuario
         }
     }
 
@@ -781,11 +820,7 @@ class OrderManager {
         if (saved) {
             this.orders = JSON.parse(saved);
         }
-
-        // Auto-sincronizar al cargar si está configurado
-        if (this.config.githubToken && this.config.gistId) {
-            setTimeout(() => this.loadFromGist(), 1000);
-        }
+        // No hacer auto-sincronización aquí, se hace en init()
     }
 
     showNotification(message, type = 'info') {
