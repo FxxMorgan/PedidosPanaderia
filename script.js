@@ -512,14 +512,60 @@ class OrderManager {
         document.getElementById('configModal').style.display = 'none';
     }
 
-    saveConfig() {
-        this.config.githubToken = document.getElementById('githubToken').value.trim();
-        this.config.gistId = document.getElementById('gistId').value.trim();
+    async saveConfig() {
+        const newToken = document.getElementById('githubToken').value.trim();
+        const newGistId = document.getElementById('gistId').value.trim();
         
-        localStorage.setItem('bakery_config', JSON.stringify(this.config));
-        this.hideConfigModal();
-        this.updateSyncStatus();
-        this.showNotification('Configuración guardada', 'success');
+        if (!newToken) {
+            this.showNotification('El token de GitHub es requerido', 'error');
+            return;
+        }
+
+        // Validar formato del token
+        if (!newToken.startsWith('ghp_') && !newToken.startsWith('github_pat_')) {
+            this.showNotification('Formato de token inválido. Debe empezar con "ghp_" o "github_pat_"', 'error');
+            return;
+        }
+
+        // Probar el token antes de guardarlo
+        try {
+            const testResponse = await fetch('https://api.github.com/user', {
+                headers: {
+                    'Authorization': `Bearer ${newToken}`,
+                    'Accept': 'application/vnd.github+json',
+                    'X-GitHub-Api-Version': '2022-11-28'
+                }
+            });
+
+            if (!testResponse.ok) {
+                if (testResponse.status === 401) {
+                    this.showNotification('Token inválido o expirado', 'error');
+                } else if (testResponse.status === 403) {
+                    this.showNotification('Token sin permisos suficientes. Asegúrese de incluir el scope "gist"', 'error');
+                } else {
+                    this.showNotification(`Error al validar token: ${testResponse.status}`, 'error');
+                }
+                return;
+            }
+
+            // Token válido, guardar configuración
+            this.config.githubToken = newToken;
+            this.config.gistId = newGistId;
+            
+            localStorage.setItem('bakery_config', JSON.stringify(this.config));
+            this.hideConfigModal();
+            this.updateSyncStatus();
+            this.showNotification('Configuración guardada y token validado', 'success');
+
+            // Intentar sincronizar automáticamente
+            if (this.orders.length > 0) {
+                setTimeout(() => this.syncData(), 1000);
+            }
+
+        } catch (error) {
+            console.error('Error al validar token:', error);
+            this.showNotification('Error de conexión. Verifique su internet y el token.', 'error');
+        }
     }
 
     loadConfig() {
@@ -540,11 +586,12 @@ class OrderManager {
     async syncData() {
         if (!this.config.githubToken) {
             this.showNotification('Configure GitHub token para sincronizar', 'error');
+            this.showConfigModal();
             return;
         }
 
         const syncBtn = document.getElementById('syncBtn');
-        syncBtn.classList.add('syncing');
+        syncBtn.classList.add('animate-spin');
 
         try {
             const data = {
@@ -565,25 +612,55 @@ class OrderManager {
             this.showNotification('Datos sincronizados exitosamente', 'success');
         } catch (error) {
             console.error('Error al sincronizar:', error);
-            this.showNotification('Error al sincronizar datos', 'error');
+            
+            if (error.message.includes('403')) {
+                this.showNotification('Token de GitHub inválido o sin permisos. Verifique la configuración.', 'error');
+                this.showConfigModal();
+            } else if (error.message.includes('401')) {
+                this.showNotification('Token de GitHub no autorizado. Genere un nuevo token.', 'error');
+                this.showConfigModal();
+            } else if (error.message.includes('404')) {
+                this.showNotification('Gist no encontrado. Se creará uno nuevo.', 'warning');
+                this.config.gistId = '';
+                localStorage.setItem('bakery_config', JSON.stringify(this.config));
+                // Intentar crear uno nuevo
+                try {
+                    const gistId = await this.createGist(data);
+                    this.config.gistId = gistId;
+                    localStorage.setItem('bakery_config', JSON.stringify(this.config));
+                    this.showNotification('Nuevo Gist creado exitosamente', 'success');
+                } catch (createError) {
+                    this.showNotification('Error al crear nuevo Gist', 'error');
+                }
+            } else {
+                this.showNotification('Error de conexión. Verifique su internet.', 'error');
+            }
             
             // Intentar cargar datos del gist si falló la escritura
-            try {
-                await this.loadFromGist();
-            } catch (loadError) {
-                console.error('Error al cargar datos:', loadError);
+            if (this.config.gistId) {
+                try {
+                    await this.loadFromGist();
+                } catch (loadError) {
+                    console.error('Error al cargar datos:', loadError);
+                }
             }
         } finally {
-            syncBtn.classList.remove('syncing');
+            syncBtn.classList.remove('animate-spin');
         }
     }
 
     async createGist(data) {
+        if (!this.config.githubToken) {
+            throw new Error('GitHub token no configurado');
+        }
+
         const response = await fetch('https://api.github.com/gists', {
             method: 'POST',
             headers: {
-                'Authorization': `token ${this.config.githubToken}`,
-                'Content-Type': 'application/json'
+                'Authorization': `Bearer ${this.config.githubToken}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28'
             },
             body: JSON.stringify({
                 description: 'Datos de Pedidos - Panadería',
@@ -597,7 +674,9 @@ class OrderManager {
         });
 
         if (!response.ok) {
-            throw new Error(`Error al crear gist: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+            throw new Error(`Error al crear gist: ${response.status} - ${errorText}`);
         }
 
         const gist = await response.json();
@@ -605,11 +684,17 @@ class OrderManager {
     }
 
     async updateGist(data) {
+        if (!this.config.githubToken || !this.config.gistId) {
+            throw new Error('Configuración incompleta');
+        }
+
         const response = await fetch(`https://api.github.com/gists/${this.config.gistId}`, {
             method: 'PATCH',
             headers: {
-                'Authorization': `token ${this.config.githubToken}`,
-                'Content-Type': 'application/json'
+                'Authorization': `Bearer ${this.config.githubToken}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28'
             },
             body: JSON.stringify({
                 files: {
@@ -621,50 +706,65 @@ class OrderManager {
         });
 
         if (!response.ok) {
-            throw new Error(`Error al actualizar gist: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+            throw new Error(`Error al actualizar gist: ${response.status} - ${errorText}`);
         }
     }
 
     async loadFromGist() {
-        if (!this.config.gistId) return;
+        if (!this.config.gistId || !this.config.githubToken) return;
 
-        const response = await fetch(`https://api.github.com/gists/${this.config.gistId}`, {
-            headers: {
-                'Authorization': `token ${this.config.githubToken}`
+        try {
+            const response = await fetch(`https://api.github.com/gists/${this.config.gistId}`, {
+                headers: {
+                    'Authorization': `Bearer ${this.config.githubToken}`,
+                    'Accept': 'application/vnd.github+json',
+                    'X-GitHub-Api-Version': '2022-11-28'
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    this.showNotification('Gist no encontrado. Se creará uno nuevo en la próxima sincronización.', 'warning');
+                    this.config.gistId = '';
+                    localStorage.setItem('bakery_config', JSON.stringify(this.config));
+                }
+                throw new Error(`Error al cargar gist: ${response.status}`);
             }
-        });
 
-        if (!response.ok) {
-            throw new Error(`Error al cargar gist: ${response.status}`);
+            const gist = await response.json();
+            const content = gist.files['pedidos.json'].content;
+            const data = JSON.parse(content);
+
+            // Combinar datos locales con remotos
+            const remoteOrders = data.orders || [];
+            const localOrders = this.orders;
+
+            // Crear un mapa de pedidos por ID para evitar duplicados
+            const orderMap = new Map();
+
+            // Agregar pedidos locales
+            localOrders.forEach(order => {
+                orderMap.set(order.id, order);
+            });
+
+            // Agregar/actualizar con pedidos remotos (los remotos tienen prioridad si hay conflicto de timestamps)
+            remoteOrders.forEach(remoteOrder => {
+                const localOrder = orderMap.get(remoteOrder.id);
+                if (!localOrder || new Date(remoteOrder.updatedAt) > new Date(localOrder.updatedAt)) {
+                    orderMap.set(remoteOrder.id, remoteOrder);
+                }
+            });
+
+            this.orders = Array.from(orderMap.values());
+            this.saveToLocalStorage();
+            this.renderOrders();
+            
+            this.showNotification('Datos sincronizados desde la nube', 'success');
+        } catch (error) {
+            console.error('Error al cargar desde gist:', error);
         }
-
-        const gist = await response.json();
-        const content = gist.files['pedidos.json'].content;
-        const data = JSON.parse(content);
-
-        // Combinar datos locales con remotos
-        const remoteOrders = data.orders || [];
-        const localOrders = this.orders;
-
-        // Crear un mapa de pedidos por ID para evitar duplicados
-        const orderMap = new Map();
-
-        // Agregar pedidos locales
-        localOrders.forEach(order => {
-            orderMap.set(order.id, order);
-        });
-
-        // Agregar/actualizar con pedidos remotos (los remotos tienen prioridad si hay conflicto de timestamps)
-        remoteOrders.forEach(remoteOrder => {
-            const localOrder = orderMap.get(remoteOrder.id);
-            if (!localOrder || new Date(remoteOrder.updatedAt) > new Date(localOrder.updatedAt)) {
-                orderMap.set(remoteOrder.id, remoteOrder);
-            }
-        });
-
-        this.orders = Array.from(orderMap.values());
-        this.saveToLocalStorage();
-        this.renderOrders();
     }
 
     // Utilidades
