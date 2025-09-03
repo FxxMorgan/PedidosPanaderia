@@ -1,204 +1,305 @@
 # Sistema de Pedidos para Panadería
 
-Un sistema web estático para gestionar pedidos de panadería con sincronización entre dispositivos usando GitHub Gist.
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-4.18+-blue.svg)](https://expressjs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-brightgreen.svg)](https://www.mongodb.com/atlas)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![PM2](https://img.shields.io/badge/PM2-Ready-red.svg)](https://pm2.keymetrics.io/)
 
-## Características
+Sistema profesional de gestión de pedidos desarrollado con **Node.js**, **Express**, **MongoDB Atlas** y **PM2** para manejo de procesos en producción.
 
-- **Gestión completa de pedidos**: Crear, editar, actualizar estado y eliminar pedidos
-- **Campos flexibles**: Productos, cantidades/peso y precios como texto libre para máxima flexibilidad
-- **Productos específicos**: Orientado a productos de panadería chilena (empanadas, pan choripan, etc.)
-- **Persistencia local**: Los datos se guardan en localStorage del navegador
-- **Sincronización entre dispositivos**: Usando GitHub Gist API para compartir datos
-- **Interfaz completamente responsive**: Optimizada con Tailwind CSS y Material Design
-- **Filtros avanzados**: Por estado y fecha de entrega
-- **Estados de pedido**: Pendiente, En Proceso, Completado, Cancelado
+## Características Principales
 
-## Funcionalidades
-
-### Gestión de Pedidos
-- Registrar nuevos pedidos con información del cliente
-- Múltiples productos por pedido con campos de texto libre
-- Fechas y horarios de entrega
-- Notas y observaciones especiales
-- Total estimado opcional
-
-### Productos Comunes Incluidos
-- Empanadas napolitana
-- Empanadas pino  
-- Mini copihues
-- Pan choripan
-- Pan francés
-- Masa empanada frita
-- Masa de horno
-
-### Campos Flexibles
-- **Producto**: Campo de texto libre para especificar cualquier producto
-- **Cantidad/Peso**: Texto libre (ej: "12 unidades", "2 kg", "1 docena")
-- **Precio**: Texto libre (ej: "$5000", "5000 pesos", "gratis")
-- **Total**: Campo opcional para total estimado
-
-### Sincronización
-- Configuración de GitHub Personal Access Token
-- Sincronización automática entre dispositivos
-- Resolución de conflictos por timestamp
-- Backup en la nube vía GitHub Gist
-
-### Filtros y Búsqueda
-- Filtrar por estado del pedido
-- Filtrar por fecha de entrega
-- Ordenación automática por fecha/hora
+- **Interfaz Responsiva**: Diseño moderno con Tailwind CSS
+- **Base de Datos en la Nube**: MongoDB Atlas para almacenamiento escalable
+- **API REST Completa**: Endpoints para CRUD de pedidos con validación
+- **Sincronización en Tiempo Real**: Actualizaciones automáticas entre dispositivos
+- **Seguridad Robusta**: Helmet, CORS, Rate Limiting y validación de datos
+- **Gestión de Procesos**: PM2 para producción con logs y monitoreo
+- **Experiencia de Usuario Optimizada**: Interfaz intuitiva con notificaciones y filtros
 
 ## Tecnologías Utilizadas
 
-- **HTML5**: Estructura semántica
-- **Tailwind CSS**: Framework CSS para diseño responsive
-- **Material Icons**: Iconografía consistente
-- **JavaScript ES6+**: Lógica de aplicación
-- **GitHub Gist API**: Sincronización de datos
-- **LocalStorage**: Persistencia local
+- **Backend**: Node.js, Express.js
+- **Base de Datos**: MongoDB Atlas
+- **Frontend**: HTML5, JavaScript ES6+, Tailwind CSS
+- **Gestión de Procesos**: PM2
+- **Seguridad**: Helmet, CORS, express-validator
+- **Herramientas**: nodemon, compression, morgan
 
-## Configuración
+## Instalación y Configuración
 
-### 1. Configuración Básica
-1. Abrir `index.html` en cualquier navegador
-2. El sistema funciona inmediatamente con almacenamiento local
+### Requisitos Previos
 
-### 2. Configuración de Sincronización (Opcional)
-1. Crear un GitHub Personal Access Token:
-   - Ir a GitHub → Settings → Developer settings → Personal access tokens
-   - Crear token con scope "gist"
-2. Hacer clic en el botón de configuración (⚙️)
-3. Ingresar el token de GitHub
-4. Los datos se sincronizarán automáticamente
+- Node.js 18.0.0 o superior
+- npm 8.0.0 o superior
+- Cuenta en MongoDB Atlas
 
-### 3. Despliegue en GitHub Pages
-1. Subir los archivos a un repositorio de GitHub
-2. Habilitar GitHub Pages en la configuración del repositorio
-3. La aplicación estará disponible en `https://username.github.io/repository-name`
+### 1. Clonar y Configurar Dependencias
 
-## Estructura de Archivos
-
-```
-Pedidos/
-├── index.html          # Página principal
-├── script.js           # Lógica JavaScript
-└── README.md           # Documentación
+```bash
+git clone https://github.com/FxxMorgan/PedidosPanaderia.git
+cd PedidosPanaderia
+npm install
 ```
 
-## Diseño Responsive
+### 2. Configurar MongoDB Atlas
 
-### Desktop (1200px+)
-- Layout de dos columnas: formulario y lista de pedidos
-- Grid de productos optimizado
-- Máximo aprovechamiento del espacio
+1. Crea una cuenta en [MongoDB Atlas](https://cloud.mongodb.com/)
+2. Crea un nuevo cluster
+3. Configura acceso de red (0.0.0.0/0 para desarrollo)
+4. Crea un usuario de base de datos
+5. Obtén tu cadena de conexión
 
-### Tablet (768px - 1199px)
-- Layout adaptativo de una columna
-- Campos organizados en grids responsivos
-- Navegación optimizada para touch
+### 3. Configurar Variables de Entorno
 
-### Mobile (320px - 767px)
-- Layout completamente vertical
-- Campos apilados para fácil interacción
-- Botones de tamaño apropiado para dedos
+Copia `.env.example` a `.env` y configura:
 
-## Personalización
-
-### Productos
-Editar la lista de productos comunes en `index.html`:
-```html
-<span class="bg-amber-50 text-amber-800 px-3 py-2 rounded-lg text-sm font-medium border border-amber-200">Tu Producto</span>
+```env
+NODE_ENV=development
+PORT=3000
+MONGODB_URI=mongodb+srv://usuario:contraseña@cluster.mongodb.net/panaderia?retryWrites=true&w=majority
+ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ```
 
-### Colores y Tema
-Modificar las clases de Tailwind CSS en `index.html`:
-- Colores primarios: `bg-blue-500`, `text-blue-600`
-- Colores de estado: `bg-green-100`, `bg-red-100`, etc.
-- Espaciado y tipografía: `p-4`, `text-lg`, etc.
+### 4. Ejecutar en Desarrollo
 
-### Estados de Pedido
-Personalizar en `script.js`:
-```javascript
-const statusMap = {
-    'pendiente': 'Pendiente',
-    'en_proceso': 'En Proceso',
-    'completado': 'Completado',
-    'cancelado': 'Cancelado'
-};
+```bash
+npm run dev
 ```
+
+### 5. Ejecutar en Producción con PM2
+
+```bash
+# Instalar PM2 globalmente
+npm install -g pm2
+
+# Iniciar aplicación
+npm start
+
+# Ver logs
+npm run logs
+
+# Monitorear procesos
+npm run monit
+
+# Detener aplicación
+npm stop
+```
+
+## Comandos PM2 Disponibles
+
+```bash
+npm start          # Iniciar aplicación con PM2
+npm stop           # Detener aplicación
+npm run restart    # Reiniciar aplicación
+npm run delete     # Eliminar proceso de PM2
+npm run logs       # Ver logs en tiempo real
+npm run monit      # Monitor de recursos
+npm run status     # Estado de procesos
+```
+
+## API Endpoints
+
+### Pedidos
+
+- `GET /api/orders` - Obtener todos los pedidos (con paginación y filtros)
+- `POST /api/orders` - Crear nuevo pedido
+- `GET /api/orders/:id` - Obtener pedido específico
+- `PUT /api/orders/:id` - Actualizar pedido completo
+- `PATCH /api/orders/:id/status` - Cambiar solo el estado
+- `DELETE /api/orders/:id` - Eliminar pedido
+
+### Salud del Sistema
+
+- `GET /api/health` - Estado del servidor
+
+### Ejemplos de Uso
+
+**Crear Pedido:**
+```json
+POST /api/orders
+{
+  "customerName": "Juan Pérez",
+  "customerPhone": "+56912345678",
+  "deliveryDate": "2024-01-15",
+  "deliveryTime": "14:30",
+  "items": [
+    {
+      "product": "Empanadas napolitana",
+      "quantity": "12 unidades",
+      "price": "$6000"
+    }
+  ],
+  "notes": "Sin cebolla",
+  "totalAmount": "$6000"
+}
+```
+
+## Estados de Pedidos
+
+1. **Pendiente** - Recién creado
+2. **Confirmado** - Cliente confirmó el pedido
+3. **En Preparación** - Siendo preparado
+4. **Listo** - Listo para entregar
+5. **Entregado** - Completado
+
+## Funcionalidades de la Interfaz
+
+### Formulario de Pedidos
+- Información del cliente (nombre, teléfono)
+- Fecha y hora de entrega
+- Lista dinámica de productos
+- Notas especiales
+- Total estimado
+
+### Gestión de Pedidos
+- Lista en tiempo real
+- Filtros por estado y fecha
+- Cambio rápido de estados
+- Edición en línea
+- Eliminación con confirmación
+
+### Características UX
+- Notificaciones toast en tiempo real
+- Validación de formularios instantánea
+- Sincronización automática de datos
+- Indicador de estado de conexión
+- Diseño totalmente responsivo
+- Modo offline con sincronización posterior
+
+## Arquitectura del Sistema
+
+### Backend Architecture
+- **Servidor**: Express.js con middleware de seguridad
+- **Base de Datos**: MongoDB Atlas con esquemas Mongoose
+- **API**: RESTful con validación de datos
+- **Procesos**: PM2 para gestión y monitoreo
+
+### Frontend Architecture
+- **SPA**: Single Page Application vanilla JavaScript
+- **CSS Framework**: Tailwind CSS para estilos
+- **State Management**: Local storage con sincronización
+- **HTTP Client**: Fetch API con manejo de errores
+
+## Performance y Escalabilidad
+
+- **Compresión**: Middleware de compresión gzip
+- **Logs**: Sistema de logging con Morgan
+- **Rate Limiting**: Protección contra ataques DDoS
+- **Índices de Base de Datos**: Optimización de consultas MongoDB
+- **Caching**: Headers de cache para recursos estáticos
 
 ## Seguridad
 
-- Los datos se almacenan localmente en el navegador
-- La sincronización usa GitHub Gist privado
-- El token de GitHub se guarda solo en localStorage
-- No hay servidor backend, todo es estático
+- **Helmet**: Headers de seguridad HTTP
+- **CORS**: Control de origen cruzado
+- **Rate Limiting**: Limitación de solicitudes
+- **Validación**: express-validator para datos
+- **Variables de Entorno**: Configuración segura
 
-## Uso en Dispositivos Móviles
+## Estructura del Proyecto
 
-- Interfaz optimizada para pantallas pequeñas
-- Formularios táctiles amigables
-- Navegación simplificada con gestos
-- Carga rápida en conexiones lentas
-- Iconos Material Design para claridad
+```
+PedidosPanaderia/
+├── config/
+│   └── database.js          # Configuración MongoDB
+├── middleware/
+│   └── index.js             # Middlewares personalizados
+├── models/
+│   └── Order.js             # Modelo de datos Mongoose
+├── routes/
+│   └── orders.js            # Rutas API REST
+├── public/
+│   ├── index.html           # Frontend SPA
+│   └── script.js            # JavaScript del cliente
+├── ecosystem.config.js      # Configuración PM2
+├── server.js                # Servidor principal Express
+├── package.json             # Dependencias y scripts
+├── .env.example             # Variables de entorno ejemplo
+└── README.md                # Documentación
+```
 
-## Sincronización
+## Despliegue en Producción
 
-### Funcionamiento
-1. Los datos se guardan primero localmente
-2. Si hay token configurado, se sincronizan automáticamente
-3. Al cargar la página, se descargan datos remotos
-4. Se resuelven conflictos por timestamp (el más reciente gana)
+### Preparación
+1. Configurar `NODE_ENV=production` en `.env`
+2. Actualizar `ALLOWED_ORIGINS` con tu dominio
+3. Configurar MongoDB Atlas para producción
 
-### Resolución de Conflictos
-- Los pedidos se comparan por ID único
-- El timestamp `updatedAt` determina la versión más reciente
-- Los datos locales se combinan con los remotos sin pérdidas
+### Con PM2
+```bash
+npm install -g pm2
+npm start
+pm2 startup  # Configurar inicio automático
+pm2 save     # Guardar configuración
+```
 
-## Estados de Pedido
-
-1. **Pendiente**: Pedido recién creado
-2. **En Proceso**: Se está preparando el pedido
-3. **Completado**: Pedido entregado al cliente
-4. **Cancelado**: Pedido cancelado
+### Variables de Entorno de Producción
+```env
+NODE_ENV=production
+PORT=3000
+MONGODB_URI=tu_uri_de_produccion
+ALLOWED_ORIGINS=https://tudominio.com
+```
 
 ## Solución de Problemas
 
-### Sincronización no funciona
-- Verificar que el token de GitHub sea válido
-- Verificar que el token tenga permisos de "gist"
-- Revisar la consola del navegador para errores
+### Error de Conexión MongoDB
+- Verifica la cadena de conexión
+- Revisa configuración de red en Atlas
+- Confirma credenciales de usuario
 
-### Datos perdidos
-- Los datos están en localStorage del navegador
-- Si se limpia el navegador, se pierden los datos locales
-- La sincronización permite recuperar desde GitHub Gist
+### Puerto en Uso
+```bash
+# Windows
+netstat -ano | findstr :3000
+# Cambiar puerto en .env si es necesario
+```
 
-### Problemas de responsive
-- Verificar que el viewport meta tag esté presente
-- Los estilos de Tailwind están optimizados para móviles primero
+### Logs de PM2
+```bash
+npm run logs        # Ver logs
+pm2 logs --lines 50 # Ver últimas 50 líneas
+```
 
-## Mejoras Futuras
+## Actualizaciones y Mantenimiento
 
-- Exportar pedidos a PDF
-- Notificaciones push de recordatorio
-- Calendario visual de entregas
-- Estadísticas y reportes
-- Múltiples sucursales
-- Inventario integrado
-- Modo offline completo
+Para actualizar el sistema:
+
+```bash
+git pull origin main
+npm install
+npm run restart
+```
+
+## Soporte y Contribución
+
+Para reportar problemas o solicitar características:
+
+1. **Diagnóstico**: Revisa los logs con `npm run logs`
+2. **Verificación**: Comprueba conectividad API en `/api/health`
+3. **Documentación**: Consulta la documentación de MongoDB Atlas
+4. **Issues**: Crea un issue en el repositorio de GitHub
+
+### Contribuir al Proyecto
+
+1. Fork el repositorio
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
+
+---
 
 ## Licencia
 
-Este proyecto es de código abierto. Puedes usarlo, modificarlo y distribuirlo libremente.
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
 
-## Contribuciones
+## Autor
 
-Las contribuciones son bienvenidas. Por favor:
-1. Fork el proyecto
-2. Crea una rama para tu feature
-3. Commit tus cambios
-4. Push a la rama
-5. Abre un Pull Request
+**FxxMorgan** - [GitHub](https://github.com/FxxMorgan)
 
-Perfecto para pequeñas panaderías que necesitan un sistema simple y efectivo.
+---
+
+*Desarrollado para gestión eficiente de pedidos de panadería con tecnologías modernas y escalables.*
