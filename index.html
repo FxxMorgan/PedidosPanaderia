@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Pedidos - Panadería</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen font-sans">
+    <div class="container mx-auto px-4 py-6 max-w-7xl">
+        <!-- Header -->
+        <header class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+            <div class="flex flex-col sm:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 sm:mb-0">
+                    <span class="material-icons text-amber-600 text-3xl mr-3">bakery_dining</span>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Sistema de Pedidos</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="syncBtn" class="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl">
+                        <span class="material-icons">sync</span>
+                    </button>
+                    <span id="syncStatus" class="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700">Desconectado</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            <!-- Formulario de nuevo pedido -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <div class="flex items-center mb-6">
+                    <span class="material-icons text-green-600 text-2xl mr-3">add_circle</span>
+                    <h2 class="text-xl font-bold text-gray-800">Nuevo Pedido</h2>
+                </div>
+                
+                <form id="orderForm" class="space-y-6">
+                    <!-- Información del cliente -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Cliente</label>
+                            <input type="text" id="customerName" required 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
+                            <input type="tel" id="customerPhone" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                        </div>
+                    </div>
+
+                    <!-- Fecha y hora de entrega -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Entrega</label>
+                            <input type="date" id="deliveryDate" required 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Hora de Entrega</label>
+                            <input type="time" id="deliveryTime" required 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                        </div>
+                    </div>
+
+                    <!-- Productos -->
+                    <div class="bg-gray-50 rounded-xl p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Productos</h3>
+                        <div id="itemsList" class="space-y-4">
+                            <div class="item-row bg-white p-4 rounded-lg border-2 border-gray-200">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Producto</label>
+                                        <input type="text" class="product-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+                                               placeholder="Ej: Empanadas napolitana" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Cantidad/Peso</label>
+                                        <input type="text" class="quantity-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+                                               placeholder="Ej: 12 unidades o 2 kg" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Precio Total</label>
+                                        <input type="text" class="price-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+                                               placeholder="Ej: $5000">
+                                    </div>
+                                    <div class="flex items-end">
+                                        <button type="button" class="remove-item w-full sm:w-auto bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-all duration-300 flex items-center justify-center">
+                                            <span class="material-icons">delete</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" id="addItem" class="mt-4 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg transition-all duration-300 flex items-center space-x-2">
+                            <span class="material-icons">add</span>
+                            <span>Agregar Producto</span>
+                        </button>
+                    </div>
+
+                    <!-- Notas -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Notas/Observaciones</label>
+                        <textarea id="notes" rows="3" 
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                                  placeholder="Detalles especiales, decoración, etc."></textarea>
+                    </div>
+
+                    <!-- Total -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Total Estimado</label>
+                        <input type="text" id="totalAmount" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50"
+                               placeholder="Ej: $15000 (opcional)">
+                    </div>
+
+                    <!-- Botones -->
+                    <div class="flex flex-col sm:flex-row gap-4 pt-6">
+                        <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium transition-all duration-300 flex items-center justify-center space-x-2">
+                            <span class="material-icons">save</span>
+                            <span>Guardar Pedido</span>
+                        </button>
+                        <button type="button" id="cancelBtn" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 px-6 rounded-lg font-medium transition-all duration-300 flex items-center justify-center space-x-2">
+                            <span class="material-icons">close</span>
+                            <span>Cancelar</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Lista de pedidos -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+                    <div class="flex items-center mb-4 sm:mb-0">
+                        <span class="material-icons text-blue-600 text-2xl mr-3">list_alt</span>
+                        <h2 class="text-xl font-bold text-gray-800">Pedidos Registrados</h2>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                        <select id="statusFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">Todos los estados</option>
+                            <option value="pendiente">Pendiente</option>
+                            <option value="en_proceso">En Proceso</option>
+                            <option value="completado">Completado</option>
+                            <option value="cancelado">Cancelado</option>
+                        </select>
+                        <input type="date" id="dateFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+                <div id="ordersList" class="space-y-4">
+                    <!-- Los pedidos se cargarán aquí dinámicamente -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Productos comunes (referencia rápida) -->
+        <div class="mt-8 bg-white rounded-2xl shadow-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <span class="material-icons text-amber-600 mr-2">menu_book</span>
+                Productos Comunes (Referencia)
+            </h3>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                <span class="bg-amber-50 text-amber-800 px-3 py-2 rounded-lg text-sm font-medium border border-amber-200">Empanadas napolitana</span>
+                <span class="bg-amber-50 text-amber-800 px-3 py-2 rounded-lg text-sm font-medium border border-amber-200">Empanadas pino</span>
+                <span class="bg-amber-50 text-amber-800 px-3 py-2 rounded-lg text-sm font-medium border border-amber-200">Mini copihues</span>
+                <span class="bg-amber-50 text-amber-800 px-3 py-2 rounded-lg text-sm font-medium border border-amber-200">Pan choripan</span>
+                <span class="bg-amber-50 text-amber-800 px-3 py-2 rounded-lg text-sm font-medium border border-amber-200">Pan francés</span>
+                <span class="bg-amber-50 text-amber-800 px-3 py-2 rounded-lg text-sm font-medium border border-amber-200">Masa empanada frita</span>
+                <span class="bg-amber-50 text-amber-800 px-3 py-2 rounded-lg text-sm font-medium border border-amber-200">Masa de horno</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de configuración -->
+    <div id="configModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                <span class="material-icons text-blue-600 mr-2">settings</span>
+                Configuración de Sincronización
+            </h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">GitHub Personal Access Token</label>
+                    <input type="password" id="githubToken" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                           placeholder="Ingresa tu token de GitHub">
+                    <p class="text-sm text-gray-500 mt-1">Necesario para sincronizar datos entre dispositivos</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ID del Gist (opcional)</label>
+                    <input type="text" id="gistId" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                           placeholder="Se creará automáticamente si está vacío">
+                </div>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3 mt-6">
+                <button id="saveConfig" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium transition-all duration-300">
+                    Guardar
+                </button>
+                <button id="closeConfig" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 px-6 rounded-lg font-medium transition-all duration-300">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón de configuración flotante -->
+    <button id="configBtn" class="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center z-40">
+        <span class="material-icons">settings</span>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>
